@@ -8,7 +8,7 @@ It explores students’ social media usage habits and addiction levels through s
 
 ## Live Dashboard
 
-[Click here to open the dashboard](https://dilakzkn.github.io/social-media-dashboard/)
+[Click here to open the dashboard](https://dilakzlkn.github.io/social-media-dashboard/)
 
 ---
 
