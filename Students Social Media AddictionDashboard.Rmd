@@ -1,0 +1,244 @@
+---
+title: "Sosyal Medya Bağımlılığı Analizi"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    social: menu
+    source_code: embed
+    
+---
+
+```{r setup, include=FALSE}
+# 1. GEREKLİ KÜTÜPHANELERİ YÜKLÜYORUZ
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+library(DT)
+library(knitr)
+
+# 2. VERİ SETİNİ OKUTUYORUZ
+df <- read.csv("Students Social Media Addiction.csv")
+
+# 3. VERİ DÜZENLEME 
+df$Gender <- as.factor(df$Gender)
+df$Most_Used_Platform <- as.factor(df$Most_Used_Platform)
+df$Academic_Level <- as.factor(df$Academic_Level)
+
+# 4. ÖZET HESAPLAMALAR
+total_students <- nrow(df)
+avg_age <- round(mean(df$Age), 1)
+# En çok tekrar eden platformu bulma
+top_platform <- names(which.max(table(df$Most_Used_Platform)))
+avg_usage <- round(mean(df$Avg_Daily_Usage_Hours), 1)
+```
+Hakkında & Metadata {data-icon="fa-info-circle"}
+=====================================
+
+Row
+-----------------------------------------------------------------------
+### Proje Bilgileri
+
+**Öğrenci Bilgileri:**
+
+* **Ad Soyad:** Dila Kızılkan
+* **Öğrenci No:** 2307071189
+* **Bölüm:** Yönetim Bilişim Sistemleri
+
+**Veri Seti Hakkında:**
+
+* **Adı:** Students Social Media Addiction
+* **Yazar:** Adıl Shamım
+* **Kaynak:** Kaggle
+* **Tarih:** `r Sys.Date()`
+
+> **Proje Amacı:** Bu proje, öğrencilerin sosyal medya kullanım süreleri ile bağımlılık skorları ve ruh sağlıkları arasındaki ilişkiyi incelemeyi amaçlamaktadır.
+
+Row
+-----------------------------------------------------------------------
+
+### Değişken Listesi
+```{r}
+
+degisken_ozet <- data.frame(
+  Degisken_Adi = names(df),
+  Veri_Tipi = sapply(df, class)
+)
+datatable(degisken_ozet, options = list(pageLength = 5))
+```
+Veri Özeti {data-icon="fa-table"}
+===================================== 
+
+Row{data-height=150}
+-----------------------------------------------------------------------
+### Toplam Öğrenci
+```{r}
+valueBox(total_students, icon = "fa-users", color = "primary")
+```
+### Ortalama Yaş
+```{r}
+valueBox(avg_age, icon = "fa-birthday-cake", color = "info")
+```
+### En Popüler Platform
+```{r}
+valueBox(top_platform, icon = "fa-instagram", color = "success")
+```
+
+### Ort. Günlük Kullanım (Saat)
+```{r}
+valueBox(avg_usage, icon = "fa-clock", color = "warning")
+```
+Row{data-height=400}
+-----------------------------------------------------------------------
+
+### Sayısal Değişken İstatistikleri
+```{r}
+library(dplyr)
+library(tidyr)
+
+sayisal_ozet <- df %>%
+  select_if(is.numeric) %>%
+  pivot_longer(cols = everything(), names_to = "Degisken", values_to = "Deger") %>%
+  group_by(Degisken) %>%
+  summarise(
+    Ortalama = round(mean(Deger, na.rm = TRUE), 2),
+    Medyan = median(Deger, na.rm = TRUE),
+    Std_Sapma = round(sd(Deger, na.rm = TRUE), 2), 
+    Min = min(Deger, na.rm = TRUE),
+    Max = max(Deger, na.rm = TRUE)
+  )
+
+datatable(sayisal_ozet, options = list(dom = 't'))
+```
+
+Row {.tabset.tabset-fade}
+-----------------------------------------------------------------------
+### Platform Dağılımı
+```{r}
+df %>% 
+  count(Most_Used_Platform) %>% 
+  arrange(desc(n)) %>%
+  datatable(colnames = c("Platform", "Kişi Sayısı"),
+            options = list(pageLength = 5, dom = 't'))
+```
+### Cinsiyet Frekans Tablosu
+```{r}
+df %>% 
+  count(Gender) %>% 
+  arrange(desc(n)) %>%
+  datatable(colnames = c("Cinsiyet", "Kişi Sayısı"),
+            options = list(dom = 't'))
+```
+### Akademik Seviye Frekans Tablosu
+```{r}
+df %>% 
+  count(Academic_Level) %>% 
+  arrange(desc(n)) %>%
+  datatable(colnames = c("Seviye", "Kişi Sayısı"),
+            options = list(dom = 't'))
+```
+Grafikler {data-icon="fa-chart-bar"}
+=====================================
+Row
+-----------------------------------------------------------------------
+### Histogram: Günlük Kullanım Süresi Dağılımı
+```{r}
+
+p1 <- ggplot(df, aes(x = Avg_Daily_Usage_Hours)) +
+  geom_histogram(binwidth = 0.5, fill = "#2C3E50", color = "white") +
+  labs(title = "Öğrencilerin Günlük Sosyal Medya Kullanımı",
+       x = "Kullanım Süresi (Saat)",
+       y = "Öğrenci Sayısı") +
+  theme_minimal()
+
+
+ggplotly(p1)
+```
+> **Yorum:**Veri seti incelendiğinde, öğrencilerin günlük ortalama sosyal medya kullanım süresinin yaklaşık 4.9 saat olduğu görülmektedir. Dağılım çoğunlukla 4-6 saat aralığında yoğunlaşmaktadır.
+
+### Sütun Grafiği: Akademik Seviye Dağılımı
+```{r}
+p4 <- ggplot(df, aes(x = Academic_Level, fill = Academic_Level)) +
+  geom_bar() +
+  labs(title = "Öğrencilerin Akademik Seviyeleri",
+       x = "Seviye",
+       y = "Öğrenci Sayısı") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+ggplotly(p4)
+```
+> **Yorum:**Katılımcıların akademik dağılımı incelendiğinde, lisans (Undergraduate) öğrencilerinin çoğunlukta olduğu görülmektedir.
+
+Row
+-----------------------------------------------------------------------
+### Kutu Grafiği: Platforma Göre Ruh Sağlığı
+```{r}
+p2 <- ggplot(df, aes(x = Most_Used_Platform, y = Mental_Health_Score, fill = Most_Used_Platform)) +
+  geom_boxplot() +
+  labs(title = "Platformlara Göre Ruh Sağlığı Puanları",
+       x = "Platform",
+       y = "Ruh Sağlığı Skoru (1-10)") +
+  theme_minimal() +
+  theme(legend.position = "none") # Lejantı gizle
+
+ggplotly(p2)
+```
+> **Yorum:**LinkedIn ve LINE kullanıcılarının ortalama ruh sağlığı skorları (8.0) yüksekken; TikTok (5.7) ve Snapchat (5.5) kullanıcılarının skorlarının daha düşük olduğu gözlemlenmiştir.
+
+### Saçılım Grafiği: Süre vs Bağımlılık
+```{r}
+p3 <- ggplot(df, aes(x = Avg_Daily_Usage_Hours, y = Addicted_Score, color = Gender)) +
+  geom_point(alpha = 0.7) +
+  labs(title = "Kullanım Süresi ve Bağımlılık İlişkisi",
+       x = "Günlük Kullanım (Saat)",
+       y = "Bağımlılık Skoru") +
+  theme_minimal()
+
+ggplotly(p3)
+```
+> **Yorum:**Günlük Kullanım Süresi ile Bağımlılık Skoru arasında çok güçlü pozitif bir ilişki (Korelasyon: 0.83) bulunmaktadır. Süre arttıkça bağımlılık puanı da artmaktadır.
+
+
+Kaynakça {data-icon="fa-book"}
+=====================================
+
+Row
+-----------------------------------------------------------------------
+
+### Proje ve Kaynakça Detayları
+
+**Proje Hakkında:**
+
+Bu gösterge paneli (dashboard), **İstinye Üniversitesi Yönetim Bilişim Sistemleri** bölümü lisans eğitimi kapsamında hazırlanmıştır. Çalışmanın temel amacı, ham veriyi anlamlı içgörülere dönüştürmek ve kullanıcı dostu bir arayüz ile sunmaktır.
+
+**Faydalanılan Kaynaklar:**
+
+Bu çalışma hazırlanırken aşağıdaki kaynaklardan ve araçlardan yararlanılmıştır:
+
+* **1. Veri Kaynağı:**
+    * Veri Seti: *Students Social Media Addiction*
+    * Platform: Kaggle (Açık Kaynak Veri Platformu)
+    * Erişim Tarihi: `r Sys.Date()`
+
+* **2. Yazılım ve Kütüphaneler:**
+    * **Programlama Dili:** R (`r R.version.string`)
+    * **IDE:** RStudio
+    * **Temel Paketler:** `tidyverse` (Veri manipülasyonu ve ggplot2 görselleştirme)
+    * **Dashboard Altyapısı:** `flexdashboard`
+    * **Etkileşim:** `plotly` (Grafiklerin interaktif hale getirilmesi)
+    * **Tablolama:** `DT` (DataTables)
+
+* **3. Yardımcı Dokümantasyon:**
+    * R Markdown Cheatsheets
+    * Flexdashboard resmi dokümantasyonu (pkgs.rstudio.com)
+
+**Tekrarlanabilirlik Notu (Reproducibility):**
+
+Bu analiz, tamamen tekrarlanabilir olacak şekilde tasarlanmıştır. Aşağıdaki "Session Info" çıktısı, bu raporun oluşturulduğu andaki R ortamı ve paket sürümlerini detaylandırmaktadır.
+
+### Oturum Bilgileri (Session Info)
+
+```{r}
+sessionInfo()
+```
